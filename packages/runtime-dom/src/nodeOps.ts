@@ -19,7 +19,7 @@ export const nodeOps = {
   querySelector(seletor) {
     return document.querySelector(seletor)
   },
-  patentNode(node) {
+  parentNode(node) {
     return node.parentNode
   },
   nexSibling(node) {

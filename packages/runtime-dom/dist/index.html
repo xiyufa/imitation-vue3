@@ -8,9 +8,15 @@
   </head>
   <body>
     <script src="./runtime-dom.global.js"></script>
+    <div id="app"></div>
     <script>
-      let { createRenderer, h, render } = VueRuntimeDom
-      console.log(createRenderer, h, render)
+      let { createRenderer, h, render, Text } = VueRuntimeDom
+
+      render(h('h1', { style: { color: 'red' }, onClick: () => console.log(1) }, [h(Text, 2123), h('span', 456)]), app)
+
+      setTimeout(() => {
+        render(null, app)
+      }, 1000)
     </script>
   </body>
 </html>
