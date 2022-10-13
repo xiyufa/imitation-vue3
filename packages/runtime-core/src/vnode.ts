@@ -7,6 +7,11 @@ export function isVnode(value) {
   return Boolean(value?._v_isVnode)
 }
 
+// 判断两个虚拟节点是否是相同节点，1. 标签名相同 2.key 相同
+export function isSameVnode(n1, n2) {
+  return n1.type === n2.type && n1.key === n2.key
+}
+
 // 虚拟节点： 组件，元素，文本
 export function createVnode(type, props, children = null) {
   let shapeFlag = isString(type) ? ShapeFlags.ELEMENT : 0

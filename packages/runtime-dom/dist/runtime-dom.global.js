@@ -41,6 +41,9 @@ var VueRuntimeDom = (() => {
   function isVnode(value) {
     return Boolean(value == null ? void 0 : value._v_isVnode);
   }
+  function isSameVnode(n1, n2) {
+    return n1.type === n2.type && n1.key === n2.key;
+  }
   function createVnode(type, props, children = null) {
     let shapeFlag = isString(type) ? 1 /* ELEMENT */ : 0;
     const vnode = {
@@ -108,23 +111,57 @@ var VueRuntimeDom = (() => {
     const processText = (n1, n2, container) => {
       if (n1 === null) {
         hostInset(n2.el = hostCreateText(n2.children), container);
+      } else {
+        let el = n2.el = n1.el;
+        if (n1.children !== n2.children) {
+          hostSetText(el, n2.children);
+        }
+      }
+    };
+    const patchProps = (oldProps, newProps, el) => {
+      for (let key in newProps) {
+        if (newProps[key]) {
+          hostPatchProp(el, key, oldProps[key], newProps[key]);
+        }
+      }
+      for (let key in oldProps) {
+        if (newProps[key] === null) {
+          hostPatchProp(el, key, oldProps[key], null);
+        }
+      }
+    };
+    const patchChildren = (n1, n2, el) => {
+    };
+    const patchElement = (n1, n2) => {
+      let el = n2.el = n1.el;
+      let oldProps = n1.props || {};
+      let newProps = n2.props || {};
+      patchProps(oldProps, newProps, el);
+      patchChildren(n1, n2, el);
+    };
+    const processElement = (n1, n2, container) => {
+      if (n1 === null) {
+        mountElement(n2, container);
+      } else {
+        patchElement(n1, n2);
       }
     };
     const patch = (n1, n2, container) => {
       if (n1 === n2)
         return;
-      if (n1 === null) {
-        const { type, shapeFlag } = n2;
-        switch (type) {
-          case Text:
-            processText(n1, n2, container);
-            break;
-          default:
-            if (shapeFlag & 1 /* ELEMENT */) {
-              mountElement(n2, container);
-            }
-        }
-      } else {
+      if (n1 && !isSameVnode(n1, n2)) {
+        unmount(n1);
+        n1 = null;
+      }
+      const { type, shapeFlag } = n2;
+      switch (type) {
+        case Text:
+          processText(n1, n2, container);
+          break;
+        default:
+          if (shapeFlag & 1 /* ELEMENT */) {
+            processElement(n1, n2, container);
+          }
       }
     };
     const unmount = (vnode) => {

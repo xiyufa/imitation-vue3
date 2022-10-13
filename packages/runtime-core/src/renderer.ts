@@ -1,5 +1,5 @@
 import { isString, ShapeFlags } from '@vue/shared'
-import { createVnode, Text } from './vnode'
+import { createVnode, isSameVnode, Text } from './vnode'
 
 export function createRenderer(renderOptions) {
   let {
@@ -49,26 +49,68 @@ export function createRenderer(renderOptions) {
   const processText = (n1, n2, container) => {
     if (n1 === null) {
       hostInset((n2.el = hostCreateText(n2.children)), container)
+    } else {
+      let el = (n2.el = n1.el)
+      if (n1.children !== n2.children) {
+        hostSetText(el, n2.children)
+      }
+    }
+  }
+
+  const patchProps = (oldProps, newProps, el) => {
+    for (let key in newProps) {
+      if (newProps[key]) {
+        hostPatchProp(el, key, oldProps[key], newProps[key])
+      }
+    }
+    for (let key in oldProps) {
+      if (newProps[key] === null) {
+        hostPatchProp(el, key, oldProps[key], null)
+      }
+    }
+  }
+
+  const patchChildren = (n1, n2, el) => {
+    
+  }
+
+  // 复用节点  再比较属性，再比较子节点
+  const patchElement = (n1, n2) => {
+    let el = (n2.el = n1.el)
+    let oldProps = n1.props || {}
+    let newProps = n2.props || {}
+
+    // 比较属性
+    patchProps(oldProps, newProps, el)
+    // 比较子节点
+    patchChildren(n1, n2, el)
+  }
+
+  const processElement = (n1, n2, container) => {
+    if (n1 === null) {
+      mountElement(n2, container)
+    } else {
+      patchElement(n1, n2)
     }
   }
 
   const patch = (n1, n2, container) => {
     if (n1 === n2) return
-    if (n1 === null) {
-      const { type, shapeFlag } = n2
-      // 初次渲染
-      // 目前处理元素的初次渲染
-      switch (type) {
-        case Text:
-          processText(n1, n2, container)
-          break
-        default:
-          if (shapeFlag & ShapeFlags.ELEMENT) {
-            mountElement(n2, container)
-          }
-      }
-    } else {
-      // 更新
+    if (n1 && !isSameVnode(n1, n2)) {
+      unmount(n1)
+      n1 = null
+    }
+    const { type, shapeFlag } = n2
+    // 初次渲染
+    // 目前处理元素的初次渲染
+    switch (type) {
+      case Text:
+        processText(n1, n2, container)
+        break
+      default:
+        if (shapeFlag & ShapeFlags.ELEMENT) {
+          processElement(n1, n2, container)
+        }
     }
   }
 

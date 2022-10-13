@@ -11,11 +11,10 @@
     <div id="app"></div>
     <script>
       let { createRenderer, h, render, Text } = VueRuntimeDom
-
-      render(h('h1', { style: { color: 'red' }, onClick: () => console.log(1) }, [h(Text, 2123), h('span', 456)]), app)
+      render(h('div', { style: { color: 'red' } }, 2123), app)
 
       setTimeout(() => {
-        render(null, app)
+        render(h('div', { style: { color: 'blue', background: 'red' } }, 2123), app)
       }, 1000)
     </script>
   </body>
