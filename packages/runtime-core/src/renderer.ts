@@ -30,7 +30,7 @@ export function createRenderer(renderOptions) {
     }
   }
 
-  const mountElement = (vnode, container) => {
+  const mountElement = (vnode, container, anchor = null) => {
     const { type, props, children, shapeFlag } = vnode
     let el = (vnode.el = hostCreateElement(type))
     if (props) {
@@ -45,7 +45,7 @@ export function createRenderer(renderOptions) {
       mounthChildren(children, el)
     }
 
-    hostInset(el, container)
+    hostInset(el, container, anchor)
   }
 
   const processText = (n1, n2, container) => {
@@ -78,6 +78,58 @@ export function createRenderer(renderOptions) {
     }
   }
 
+  const pathKeydChildren = (c1, c2, el) => {
+    let i = 0
+    let e1 = c1.length
+    let e2 = c2.length
+
+    // sync from start
+    while (i <= e1 && i <= e2) {
+      const n1 = c1[i]
+      const n2 = c2[i]
+      if (isSameVnode(n1, n2)) {
+        patch(n1, n2, el)
+      } else {
+        break
+      }
+      i++
+    }
+
+    // sync from end
+    while (i <= e1 && i <= e2) {
+      const n1 = c1[e1]
+      const n2 = c2[e2]
+      if (isSameVnode(n1, n2)) {
+        patch(n1, n2, el)
+      } else {
+        break
+      }
+      e1--
+      e2--
+    }
+
+    // 若i>e1  i - e2 之间的节点新增
+    if (i > e1) {
+      // 有新增
+      if (i <= e2) {
+        const nextPos = e2 + 1
+        // 想知道往那个方向新增
+        const anchor = nextPos < c2.length ? c2[nextPos].el : null
+        while (i <= e2) {
+          patch(null, c2[i], el, anchor)
+          i++
+        }
+      }
+    } else if (i > e2) {
+      while (i <= e1) {
+        unmount(c1[i])
+        i++
+      }
+    } else {
+      // 乱序比较
+    }
+  }
+
   const patchChildren = (n1, n2, el) => {
     const c1 = n1 && n1.children
     const c2 = n2 && n2.children
@@ -94,7 +146,7 @@ export function createRenderer(renderOptions) {
     } else {
       if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
         if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-          // diff
+          pathKeydChildren(c1, c2, el)
         } else {
           unmountChildren(c1)
         }
@@ -121,15 +173,15 @@ export function createRenderer(renderOptions) {
     patchChildren(n1, n2, el)
   }
 
-  const processElement = (n1, n2, container) => {
+  const processElement = (n1, n2, container, anchor) => {
     if (n1 === null) {
-      mountElement(n2, container)
+      mountElement(n2, container, anchor)
     } else {
       patchElement(n1, n2)
     }
   }
 
-  const patch = (n1, n2, container) => {
+  const patch = (n1, n2, container, anchor = null) => {
     if (n1 === n2) return
     if (n1 && !isSameVnode(n1, n2)) {
       unmount(n1)
@@ -144,7 +196,7 @@ export function createRenderer(renderOptions) {
         break
       default:
         if (shapeFlag & ShapeFlags.ELEMENT) {
-          processElement(n1, n2, container)
+          processElement(n1, n2, container, anchor)
         }
     }
   }

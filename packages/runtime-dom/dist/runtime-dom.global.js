@@ -42,7 +42,7 @@ var VueRuntimeDom = (() => {
     return Boolean(value == null ? void 0 : value._v_isVnode);
   }
   function isSameVnode(n1, n2) {
-    return n1.type === n2.type && n1.key === n2.key;
+    return (n1 == null ? void 0 : n1.type) === (n2 == null ? void 0 : n2.type) && (n1 == null ? void 0 : n1.key) === (n2 == null ? void 0 : n2.key);
   }
   function createVnode(type, props, children = null) {
     let shapeFlag = isString(type) ? 1 /* ELEMENT */ : 0;
@@ -95,7 +95,7 @@ var VueRuntimeDom = (() => {
         patch(null, child, container);
       }
     };
-    const mountElement = (vnode, container) => {
+    const mountElement = (vnode, container, anchor = null) => {
       const { type, props, children, shapeFlag } = vnode;
       let el = vnode.el = hostCreateElement(type);
       if (props) {
@@ -108,7 +108,7 @@ var VueRuntimeDom = (() => {
       } else if (shapeFlag & 16 /* ARRAY_CHILDREN */) {
         mounthChildren(children, el);
       }
-      hostInset(el, container);
+      hostInset(el, container, anchor);
     };
     const processText = (n1, n2, container) => {
       if (n1 === null) {
@@ -137,6 +137,48 @@ var VueRuntimeDom = (() => {
         unmount(children[i]);
       }
     };
+    const pathKeydChildren = (c1, c2, el) => {
+      let i = 0;
+      let e1 = c1.length;
+      let e2 = c2.length;
+      while (i <= e1 && i <= e2) {
+        const n1 = c1[i];
+        const n2 = c2[i];
+        if (isSameVnode(n1, n2)) {
+          patch(n1, n2, el);
+        } else {
+          break;
+        }
+        i++;
+      }
+      while (i <= e1 && i <= e2) {
+        const n1 = c1[e1];
+        const n2 = c2[e2];
+        if (isSameVnode(n1, n2)) {
+          patch(n1, n2, el);
+        } else {
+          break;
+        }
+        e1--;
+        e2--;
+      }
+      if (i > e1) {
+        if (i <= e2) {
+          const nextPos = e2 + 1;
+          const anchor = nextPos < c2.length ? c2[nextPos].el : null;
+          while (i <= e2) {
+            patch(null, c2[i], el, anchor);
+            i++;
+          }
+        }
+      } else if (i > e2) {
+        while (i <= e1) {
+          unmount(c1[i]);
+          i++;
+        }
+      } else {
+      }
+    };
     const patchChildren = (n1, n2, el) => {
       const c1 = n1 && n1.children;
       const c2 = n2 && n2.children;
@@ -152,6 +194,7 @@ var VueRuntimeDom = (() => {
       } else {
         if (prevShapeFlag & 16 /* ARRAY_CHILDREN */) {
           if (shapeFlag & 16 /* ARRAY_CHILDREN */) {
+            pathKeydChildren(c1, c2, el);
           } else {
             unmountChildren(c1);
           }
@@ -172,14 +215,14 @@ var VueRuntimeDom = (() => {
       patchProps(oldProps, newProps, el);
       patchChildren(n1, n2, el);
     };
-    const processElement = (n1, n2, container) => {
+    const processElement = (n1, n2, container, anchor) => {
       if (n1 === null) {
-        mountElement(n2, container);
+        mountElement(n2, container, anchor);
       } else {
         patchElement(n1, n2);
       }
     };
-    const patch = (n1, n2, container) => {
+    const patch = (n1, n2, container, anchor = null) => {
       if (n1 === n2)
         return;
       if (n1 && !isSameVnode(n1, n2)) {
@@ -193,7 +236,7 @@ var VueRuntimeDom = (() => {
           break;
         default:
           if (shapeFlag & 1 /* ELEMENT */) {
-            processElement(n1, n2, container);
+            processElement(n1, n2, container, anchor);
           }
       }
     };
