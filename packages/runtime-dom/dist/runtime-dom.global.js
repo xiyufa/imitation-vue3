@@ -127,8 +127,8 @@ var VueRuntimeDom = (() => {
         }
       }
       for (let key in oldProps) {
-        if (newProps[key] === null) {
-          hostPatchProp(el, key, oldProps[key], null);
+        if (!newProps[key]) {
+          hostPatchProp(el, key, oldProps[key], void 0);
         }
       }
     };
@@ -176,7 +176,35 @@ var VueRuntimeDom = (() => {
           unmount(c1[i]);
           i++;
         }
-      } else {
+      }
+      let s1 = i;
+      let s2 = i;
+      const keyToNewIndexMap = /* @__PURE__ */ new Map();
+      for (let i2 = s2; i2 <= e2; i2++) {
+        keyToNewIndexMap.set(c2[i2].key, i2);
+      }
+      const toBePacth = e2 - s2 + 1;
+      const newIndexToOldIndex = new Array(toBePacth).fill(0);
+      for (let i2 = s1; i2 <= e1; i2++) {
+        const oldChild = c1[i2];
+        const flag = keyToNewIndexMap.has(oldChild.key);
+        let newIndex = keyToNewIndexMap.get(oldChild.key);
+        if (!flag) {
+          unmount(oldChild);
+        } else {
+          newIndexToOldIndex[newIndex - s2] = i2 + 1;
+          patch(oldChild, c2[newIndex], el);
+        }
+      }
+      for (let i2 = toBePacth - 1; i2 > 0; i2--) {
+        let index = i2 + s2;
+        let current = c2[index];
+        let anchor = index + 1 < c2.length ? c2[index + 1].el : null;
+        if (newIndexToOldIndex[i2] === 0) {
+          patch(null, current, el, anchor);
+        } else {
+          hostInset(current.el, el, anchor);
+        }
       }
     };
     const patchChildren = (n1, n2, el) => {
@@ -355,13 +383,13 @@ var VueRuntimeDom = (() => {
   }
 
   // packages/runtime-dom/src/modules/style.ts
-  function pathcStyle(el, prevValue, nextValue) {
+  function pathcStyle(el, prevValue, nextValue = {}) {
     for (let key in nextValue) {
       el.style[key] = nextValue[key];
     }
     if (prevValue) {
       for (let key in prevValue) {
-        if (nextValue[key] === null) {
+        if (!nextValue[key] == null) {
           el.style[key] = null;
         }
       }

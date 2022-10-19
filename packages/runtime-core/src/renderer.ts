@@ -66,8 +66,8 @@ export function createRenderer(renderOptions) {
       }
     }
     for (let key in oldProps) {
-      if (newProps[key] === null) {
-        hostPatchProp(el, key, oldProps[key], null)
+      if (!newProps[key]) {
+        hostPatchProp(el, key, oldProps[key], undefined)
       }
     }
   }
@@ -125,8 +125,38 @@ export function createRenderer(renderOptions) {
         unmount(c1[i])
         i++
       }
-    } else {
-      // 乱序比较
+    }
+    // 乱序比较
+    let s1 = i
+    let s2 = i
+    const keyToNewIndexMap = new Map()
+    for (let i = s2; i <= e2; i++) {
+      keyToNewIndexMap.set(c2[i].key, i)
+    }
+    // 循环老节点， 若新的里面有则比较，若没有则删除
+    const toBePacth = e2 - s2 + 1
+    const newIndexToOldIndex = new Array(toBePacth).fill(0)
+    for (let i = s1; i <= e1; i++) {
+      const oldChild = c1[i]
+      const flag = keyToNewIndexMap.has(oldChild.key)
+      let newIndex = keyToNewIndexMap.get(oldChild.key)
+      if (!flag) {
+        unmount(oldChild)
+      } else {
+        newIndexToOldIndex[newIndex - s2] = i + 1
+        patch(oldChild, c2[newIndex], el)
+      }
+    }
+    // 移动位置
+    for (let i = toBePacth - 1; i > 0; i--) {
+      let index = i + s2
+      let current = c2[index]
+      let anchor = index + 1 < c2.length ? c2[index + 1].el : null
+      if (newIndexToOldIndex[i] === 0) {
+        patch(null, current, el, anchor)
+      } else {
+        hostInset(current.el, el, anchor)
+      }
     }
   }
 
