@@ -1,6 +1,6 @@
 import { isString, ShapeFlags } from '@vue/shared'
 import { getSequence } from './sequence'
-import { createVnode, isSameVnode, Text } from './vnode'
+import { createVnode, isSameVnode, Text, Fragment } from './vnode'
 
 export function createRenderer(renderOptions) {
   let {
@@ -149,7 +149,7 @@ export function createRenderer(renderOptions) {
       }
     }
     const increment = getSequence(newIndexToOldIndexMap)
-    
+
     let j = increment.length - 1
     // 移动位置
     for (let i = toBePacth - 1; i > 0; i--) {
@@ -219,6 +219,14 @@ export function createRenderer(renderOptions) {
     }
   }
 
+  const processFragment = (n1, n2, container) => {
+    if (n1 === null) {
+      mounthChildren(n2.children, container)
+    } else {
+      patchChildren(n1, n2, container)
+    }
+  }
+
   const patch = (n1, n2, container, anchor = null) => {
     if (n1 === n2) return
     if (n1 && !isSameVnode(n1, n2)) {
@@ -231,6 +239,9 @@ export function createRenderer(renderOptions) {
     switch (type) {
       case Text:
         processText(n1, n2, container)
+        break
+      case Fragment:
+        processFragment(n1, n2, container)
         break
       default:
         if (shapeFlag & ShapeFlags.ELEMENT) {

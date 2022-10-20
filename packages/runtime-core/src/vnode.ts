@@ -2,6 +2,7 @@ import { isArray } from './../../shared/src/index'
 import { isString, ShapeFlags } from '@vue/shared'
 
 export const Text = Symbol('text')
+export const Fragment = Symbol('Fragment')
 
 export function isVnode(value) {
   return Boolean(value?._v_isVnode)

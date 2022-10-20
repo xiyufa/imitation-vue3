@@ -10,35 +10,9 @@
     <script src="./runtime-dom.global.js"></script>
     <div id="app"></div>
     <script>
-      let { createRenderer, h, render, Text } = VueRuntimeDom
-      render(
-        h('div', { style: { color: 'red' } }, [
-          h('p', { key: 'a' }, 'a'),
-          h('p', { key: 'b' }, 'b'),
-          h('p', { key: 'c' }, 'c'),
-          h('p', { key: 'd' }, 'd'),
-          h('p', { key: 'e' }, 'e'),
-          h('p', { key: 'f' }, 'f'),
-          h('p', { key: 'g' }, 'g')
-        ]),
-        app
-      )
+      let { createRenderer, h, render, Text, Fragment } = VueRuntimeDom
 
-      setTimeout(() => {
-        render(
-          h('div', { style: { color: 'blue' } }, [
-            h('p', { key: 'a' }, 'a'),
-            h('p', { key: 'b' }, 'b'),
-            h('p', { key: 'e' }, 'e'),
-            h('p', { key: 'c' }, 'c'),
-            h('p', { key: 'd' }, 'd'),
-            h('p', { key: 'h' }, 'h'),
-            h('p', { key: 'f' }, 'f'),
-            h('p', { key: 'g' }, 'g')
-          ]),
-          app
-        )
-      }, 1000)
+      render(h(Fragment, [h(Text, 'hello'), h('h1', 'hello')]), app)
     </script>
   </body>
 </html>
