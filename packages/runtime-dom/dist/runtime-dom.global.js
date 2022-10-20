@@ -36,6 +36,45 @@ var VueRuntimeDom = (() => {
   var isArray = Array.isArray;
   var assign = Object.assign;
 
+  // packages/runtime-core/src/sequence.ts
+  function getSequence(arr = []) {
+    let result = [];
+    let preIndex = [];
+    for (let i2 = 0; i2 < arr.length; i2++) {
+      if (arr[i2] !== 0) {
+        let last2 = arr[result[result.length - 1]];
+        let current = arr[i2];
+        if (current > last2 || last2 === void 0) {
+          preIndex[i2] = result[result.length - 1];
+          result.push(i2);
+        } else {
+          let start = 0;
+          let end = result.length - 1;
+          let middle;
+          while (start < end) {
+            middle = Math.floor((start + end) / 2);
+            if (arr[result[middle]] > current) {
+              end = middle;
+            } else {
+              start = middle + 1;
+            }
+          }
+          if (arr[result[start]] > current) {
+            preIndex[i2] = result[start - 1];
+            result[start] = i2;
+          }
+        }
+      }
+    }
+    let i = result.length;
+    let last = result[i - 1];
+    while (i-- > 0) {
+      result[i] = last;
+      last = preIndex[last];
+    }
+    return result;
+  }
+
   // packages/runtime-core/src/vnode.ts
   var Text = Symbol("text");
   function isVnode(value) {
@@ -184,7 +223,7 @@ var VueRuntimeDom = (() => {
         keyToNewIndexMap.set(c2[i2].key, i2);
       }
       const toBePacth = e2 - s2 + 1;
-      const newIndexToOldIndex = new Array(toBePacth).fill(0);
+      const newIndexToOldIndexMap = new Array(toBePacth).fill(0);
       for (let i2 = s1; i2 <= e1; i2++) {
         const oldChild = c1[i2];
         const flag = keyToNewIndexMap.has(oldChild.key);
@@ -192,18 +231,24 @@ var VueRuntimeDom = (() => {
         if (!flag) {
           unmount(oldChild);
         } else {
-          newIndexToOldIndex[newIndex - s2] = i2 + 1;
+          newIndexToOldIndexMap[newIndex - s2] = i2 + 1;
           patch(oldChild, c2[newIndex], el);
         }
       }
+      const increment = getSequence(newIndexToOldIndexMap);
+      let j = increment.length - 1;
       for (let i2 = toBePacth - 1; i2 > 0; i2--) {
         let index = i2 + s2;
         let current = c2[index];
         let anchor = index + 1 < c2.length ? c2[index + 1].el : null;
-        if (newIndexToOldIndex[i2] === 0) {
+        if (newIndexToOldIndexMap[i2] === 0) {
           patch(null, current, el, anchor);
         } else {
-          hostInset(current.el, el, anchor);
+          if (i2 !== increment[j]) {
+            hostInset(current.el, el, anchor);
+          } else {
+            j--;
+          }
         }
       }
     };

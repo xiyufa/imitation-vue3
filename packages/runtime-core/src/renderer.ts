@@ -1,4 +1,5 @@
 import { isString, ShapeFlags } from '@vue/shared'
+import { getSequence } from './sequence'
 import { createVnode, isSameVnode, Text } from './vnode'
 
 export function createRenderer(renderOptions) {
@@ -135,7 +136,7 @@ export function createRenderer(renderOptions) {
     }
     // 循环老节点， 若新的里面有则比较，若没有则删除
     const toBePacth = e2 - s2 + 1
-    const newIndexToOldIndex = new Array(toBePacth).fill(0)
+    const newIndexToOldIndexMap = new Array(toBePacth).fill(0)
     for (let i = s1; i <= e1; i++) {
       const oldChild = c1[i]
       const flag = keyToNewIndexMap.has(oldChild.key)
@@ -143,19 +144,26 @@ export function createRenderer(renderOptions) {
       if (!flag) {
         unmount(oldChild)
       } else {
-        newIndexToOldIndex[newIndex - s2] = i + 1
+        newIndexToOldIndexMap[newIndex - s2] = i + 1
         patch(oldChild, c2[newIndex], el)
       }
     }
+    const increment = getSequence(newIndexToOldIndexMap)
+    
+    let j = increment.length - 1
     // 移动位置
     for (let i = toBePacth - 1; i > 0; i--) {
       let index = i + s2
       let current = c2[index]
       let anchor = index + 1 < c2.length ? c2[index + 1].el : null
-      if (newIndexToOldIndex[i] === 0) {
+      if (newIndexToOldIndexMap[i] === 0) {
         patch(null, current, el, anchor)
       } else {
-        hostInset(current.el, el, anchor)
+        if (i !== increment[j]) {
+          hostInset(current.el, el, anchor)
+        } else {
+          j--
+        }
       }
     }
   }

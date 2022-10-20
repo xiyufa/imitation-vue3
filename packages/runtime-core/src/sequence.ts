@@ -1,4 +1,4 @@
-function getSequence(arr = []) {
+export function getSequence(arr = []) {
   let result = []
   let preIndex = []
 
@@ -14,7 +14,7 @@ function getSequence(arr = []) {
         let end = result.length - 1
         let middle
         while (start < end) {
-          middle = Math.floor(((start + end) / 2))
+          middle = Math.floor((start + end) / 2)
           if (arr[result[middle]] > current) {
             end = middle
           } else {
@@ -29,7 +29,7 @@ function getSequence(arr = []) {
     }
   }
 
-  // 利用前去节点重新计算result
+  // 利用前驱动节点重新计算result
   let i = result.length
   let last = result[i - 1]
 
@@ -40,6 +40,3 @@ function getSequence(arr = []) {
 
   return result
 }
-
-
-console.log(getSequence([3, 2, 8, 9, 5, 6, 7, 11, 15, 4]))
