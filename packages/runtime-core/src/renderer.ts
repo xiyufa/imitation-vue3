@@ -1,10 +1,9 @@
-import { hasOwn } from '@vue/shared'
-import { reactive, ReactiveEffect } from '@vue/reactivity'
+import { ReactiveEffect } from '@vue/reactivity'
 import { isString, ShapeFlags } from '@vue/shared'
-import { initProps } from './componentProps'
 import { queueJob } from './scheduler'
 import { getSequence } from './sequence'
 import { createVnode, isSameVnode, Text, Fragment } from './vnode'
+import { createComponentInstance, setupComponent } from './component'
 
 export function createRenderer(renderOptions) {
   let {
@@ -231,56 +230,8 @@ export function createRenderer(renderOptions) {
     }
   }
 
-  const publicPropertyMap = {
-    $attrs: i => i.attrs
-  }
-
-  const mountComponent = (vnode, container, anchor = null) => {
-    let { data = () => {}, render, props: propsOptions } = vnode.type
-    const state = reactive(data())
-    const instance = {
-      state,
-      vnode,
-      subTree: null,
-      isMounted: false,
-      update: null,
-      propsOptions,
-      props: {},
-      attrs: {},
-      proxy: null
-    }
-
-    initProps(instance, vnode.props)
-
-    instance.proxy = new Proxy(instance, {
-      get(target, key) {
-        const { state, props } = target
-        if (state && hasOwn(state, key)) {
-          return state[key]
-        } else if (props && hasOwn(props, key)) {
-          return props[key]
-        }
-        let getter = publicPropertyMap[key]
-        
-        if (getter) {
-          return getter(target)
-        }
-      },
-      set(target, key, value) {
-        const { state, props } = target
-        if (state && hasOwn(state, key)) {
-          state[key] = value
-          return true
-        } else if (props && hasOwn(props, key)) {
-          // 用户操作的属性是代理对象，此处屏蔽了
-          // 但是用户任然可以通过instance.props 拿到真实的props
-          console.warn(`attempting to mutatte prop ${key as string}`)
-          return false
-        }
-        return true
-      }
-    })
-
+  const setupComponentEffect = (instance, container, anchor) => {
+    const { render } = instance
     const componentUpdate = () => {
       if (instance.isMounted) {
         const subTree = render.call(instance.proxy)
@@ -298,6 +249,15 @@ export function createRenderer(renderOptions) {
     )
     let update = (instance.update = effect.run.bind(effect))
     update()
+  }
+
+  const mountComponent = (vnode, container, anchor = null) => {
+    // 1. 创建一个组件实例
+    let instance = createComponentInstance(vnode)
+    // 2. 给实例赋值
+    setupComponent(instance)
+    // 3. 创建一个effrct
+    setupComponentEffect(instance, container, anchor)
   }
 
   const processComponent = (n1, n2, container, anchor) => {
