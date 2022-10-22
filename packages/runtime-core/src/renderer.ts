@@ -1,4 +1,6 @@
+import { reactive, ReactiveEffect } from '@vue/reactivity'
 import { isString, ShapeFlags } from '@vue/shared'
+import { queueJob } from './scheduler'
 import { getSequence } from './sequence'
 import { createVnode, isSameVnode, Text, Fragment } from './vnode'
 
@@ -227,6 +229,44 @@ export function createRenderer(renderOptions) {
     }
   }
 
+  const mountComponent = (vnode, container, anchor = null) => {
+    let { data = () => {}, render } = vnode.type
+    const state = reactive(data())
+    const instance = {
+      state,
+      vnode,
+      subTree: null,
+      isMounted: false,
+      update: null
+    }
+    const componentUpdate = () => {
+      console.log('更新');
+      
+      if (instance.isMounted) {
+        const subTree = render.call(state)
+
+        patch(null, subTree, container, anchor)
+        instance.subTree = subTree
+        instance.isMounted = true
+      } else {
+        const subTree = render.call(state)
+        patch(instance.subTree, subTree, container, anchor)
+        instance.subTree = subTree
+      }
+    }
+    const effect = new ReactiveEffect(componentUpdate, () => queueJob(instance.update))
+    let update = (instance.update = effect.run.bind(effect))
+    update()
+  }
+
+  const processComponent = (n1, n2, container, anchor) => {
+    if (n1 === null) {
+      mountComponent(n2, container, anchor)
+    } else {
+      // 组件更新 props
+    }
+  }
+
   const patch = (n1, n2, container, anchor = null) => {
     if (n1 === n2) return
     if (n1 && !isSameVnode(n1, n2)) {
@@ -246,6 +286,8 @@ export function createRenderer(renderOptions) {
       default:
         if (shapeFlag & ShapeFlags.ELEMENT) {
           processElement(n1, n2, container, anchor)
+        } else if (shapeFlag & ShapeFlags.COMPONENT) {
+          processComponent(n1, n2, container, anchor)
         }
     }
   }

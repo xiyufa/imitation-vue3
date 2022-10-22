@@ -14,7 +14,7 @@ export class ReactiveEffect {
   private parent = null
   private active = true // effect 默认激活
   private deps = []
-  constructor(private fn, private scheduler) {}
+  constructor(private fn, private scheduler?) {}
 
   run() {
     if (!this.active) {

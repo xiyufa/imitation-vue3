@@ -27,6 +27,95 @@ var VueRuntimeDom = (() => {
     render: () => render
   });
 
+  // packages/reactivity/src/effect.ts
+  var activeEffect = void 0;
+  function clearupEffect(effect2) {
+    const { deps = [] } = effect2;
+    if (deps.length) {
+      for (let i = 0; i < deps.length; i++) {
+        deps[i].delete(effect2);
+      }
+      effect2.deps = [];
+    }
+  }
+  var ReactiveEffect = class {
+    constructor(fn, scheduler) {
+      this.fn = fn;
+      this.scheduler = scheduler;
+      this.parent = null;
+      this.active = true;
+      this.deps = [];
+    }
+    run() {
+      if (!this.active) {
+        return this.fn();
+      }
+      try {
+        this.parent = activeEffect;
+        activeEffect = this;
+        clearupEffect(this);
+        return this.fn();
+      } finally {
+        activeEffect = this.parent;
+      }
+    }
+    stop() {
+      if (this.active) {
+        this.active = false;
+        clearupEffect(this);
+      }
+    }
+  };
+  function effect(fn, options = {}) {
+    const _effect = new ReactiveEffect(fn, options.scheduler);
+    _effect.run();
+    const runner = _effect.run.bind(_effect);
+    runner.effect = _effect;
+    return runner;
+  }
+  var reactiveMap = /* @__PURE__ */ new WeakMap();
+  function track(target, type, key) {
+    if (!activeEffect)
+      return;
+    let depsMap = reactiveMap.get(target);
+    if (!depsMap) {
+      reactiveMap.set(target, depsMap = /* @__PURE__ */ new Map());
+    }
+    let dep = depsMap.get(key);
+    if (!dep) {
+      depsMap.set(key, dep = /* @__PURE__ */ new Set());
+    }
+    trackEffect(dep);
+  }
+  function trackEffect(dep) {
+    let shouldTranck = !dep.has(activeEffect);
+    if (shouldTranck) {
+      dep.add(activeEffect);
+      activeEffect.deps.push(dep);
+    }
+  }
+  function trigger(target, type, key, value, oldValue) {
+    const depMap = reactiveMap.get(target);
+    if (!depMap)
+      return;
+    const effects = depMap.get(key);
+    triggerEffect(effects);
+  }
+  function triggerEffect(effects) {
+    if (!effect)
+      return;
+    const tempEffects = [...effects];
+    tempEffects.forEach((effect2) => {
+      if (effect2 !== activeEffect) {
+        if (effect2.scheduler) {
+          effect2.scheduler();
+        } else {
+          effect2.run();
+        }
+      }
+    });
+  }
+
   // packages/shared/src/index.ts
   var isObject = (value) => {
     return typeof value === "object" && value !== null;
@@ -36,6 +125,68 @@ var VueRuntimeDom = (() => {
   };
   var isArray = Array.isArray;
   var assign = Object.assign;
+
+  // packages/reactivity/src/baseHandler.ts
+  var mutableHandlers = {
+    get(target, key, recevier) {
+      if (key === "__v_isReactive" /* IS_REACTIVE */) {
+        return true;
+      }
+      track(target, "get", key);
+      let res = Reflect.get(target, key, recevier);
+      if (isObject(res)) {
+        res = reactive(res);
+      }
+      return res;
+    },
+    set(target, key, value, receiver) {
+      const oldValue = target[key];
+      const result = Reflect.set(target, key, value, receiver);
+      if (oldValue !== value) {
+        trigger(target, "set", key, value, oldValue);
+      }
+      return result;
+    }
+  };
+
+  // packages/reactivity/src/reactive.ts
+  var reactiveMap2 = /* @__PURE__ */ new WeakMap();
+  function reactive(target) {
+    if (!isObject(target))
+      return;
+    if (target["__v_isReactive" /* IS_REACTIVE */]) {
+      return target;
+    }
+    let exisitingProxy = reactiveMap2.get(target);
+    if (exisitingProxy) {
+      return exisitingProxy;
+    }
+    const proxy = new Proxy(target, mutableHandlers);
+    return proxy;
+  }
+
+  // packages/runtime-core/src/scheduler.ts
+  var queue = [];
+  var isFlushing = false;
+  var resolvePromiss = Promise.resolve();
+  function queueJob(job) {
+    if (!queue.includes(job)) {
+      queue.push(job);
+    }
+    if (!isFlushing) {
+      isFlushing = true;
+      resolvePromiss.then(() => {
+        isFlushing = false;
+        let copy = queue.slice(0);
+        for (let i = 0; i < copy.length; i++) {
+          let job2 = queue[i];
+          job2();
+        }
+        queue.length = 0;
+        copy.length = 0;
+      });
+    }
+  }
 
   // packages/runtime-core/src/sequence.ts
   function getSequence(arr = []) {
@@ -86,7 +237,7 @@ var VueRuntimeDom = (() => {
     return (n1 == null ? void 0 : n1.type) === (n2 == null ? void 0 : n2.type) && (n1 == null ? void 0 : n1.key) === (n2 == null ? void 0 : n2.key);
   }
   function createVnode(type, props, children = null) {
-    let shapeFlag = isString(type) ? 1 /* ELEMENT */ : 0;
+    let shapeFlag = isString(type) ? 1 /* ELEMENT */ : isObject(type) ? 4 /* STATRFUL_COMPONENT */ : 0;
     const vnode = {
       el: null,
       type,
@@ -304,6 +455,40 @@ var VueRuntimeDom = (() => {
         patchChildren(n1, n2, container);
       }
     };
+    const mountComponent = (vnode, container, anchor = null) => {
+      let { data = () => {
+      }, render: render3 } = vnode.type;
+      const state = reactive(data());
+      const instance = {
+        state,
+        vnode,
+        subTree: null,
+        isMounted: false,
+        update: null
+      };
+      const componentUpdate = () => {
+        console.log("\u66F4\u65B0");
+        if (instance.isMounted) {
+          const subTree = render3.call(state);
+          patch(null, subTree, container, anchor);
+          instance.subTree = subTree;
+          instance.isMounted = true;
+        } else {
+          const subTree = render3.call(state);
+          patch(instance.subTree, subTree, container, anchor);
+          instance.subTree = subTree;
+        }
+      };
+      const effect2 = new ReactiveEffect(componentUpdate, () => queueJob(instance.update));
+      let update = instance.update = effect2.run.bind(effect2);
+      update();
+    };
+    const processComponent = (n1, n2, container, anchor) => {
+      if (n1 === null) {
+        mountComponent(n2, container, anchor);
+      } else {
+      }
+    };
     const patch = (n1, n2, container, anchor = null) => {
       if (n1 === n2)
         return;
@@ -322,6 +507,8 @@ var VueRuntimeDom = (() => {
         default:
           if (shapeFlag & 1 /* ELEMENT */) {
             processElement(n1, n2, container, anchor);
+          } else if (shapeFlag & 6 /* COMPONENT */) {
+            processComponent(n1, n2, container, anchor);
           }
       }
     };

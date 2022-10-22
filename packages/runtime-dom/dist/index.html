@@ -12,7 +12,23 @@
     <script>
       let { createRenderer, h, render, Text, Fragment } = VueRuntimeDom
 
-      render(h(Fragment, [h(Text, 'hello'), h('h1', 'hello')]), app)
+      const VueComponent = {
+        data() {
+          return {
+            name: 'xx',
+            age: '123'
+          }
+        },
+        render() {
+          setTimeout(() => {
+            this.age++
+            this.age++
+          }, 1000)
+          return h('p', `${this.name}--${this.age}`)
+        }
+      }
+      render(h(VueComponent), app)
+
     </script>
   </body>
 </html>
