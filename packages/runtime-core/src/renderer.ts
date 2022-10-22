@@ -1,5 +1,7 @@
+import { hasOwn } from '@vue/shared'
 import { reactive, ReactiveEffect } from '@vue/reactivity'
 import { isString, ShapeFlags } from '@vue/shared'
+import { initProps } from './componentProps'
 import { queueJob } from './scheduler'
 import { getSequence } from './sequence'
 import { createVnode, isSameVnode, Text, Fragment } from './vnode'
@@ -229,32 +231,71 @@ export function createRenderer(renderOptions) {
     }
   }
 
+  const publicPropertyMap = {
+    $attrs: i => i.attrs
+  }
+
   const mountComponent = (vnode, container, anchor = null) => {
-    let { data = () => {}, render } = vnode.type
+    let { data = () => {}, render, props: propsOptions } = vnode.type
     const state = reactive(data())
     const instance = {
       state,
       vnode,
       subTree: null,
       isMounted: false,
-      update: null
+      update: null,
+      propsOptions,
+      props: {},
+      attrs: {},
+      proxy: null
     }
-    const componentUpdate = () => {
-      console.log('更新');
-      
-      if (instance.isMounted) {
-        const subTree = render.call(state)
 
+    initProps(instance, vnode.props)
+
+    instance.proxy = new Proxy(instance, {
+      get(target, key) {
+        const { state, props } = target
+        if (state && hasOwn(state, key)) {
+          return state[key]
+        } else if (props && hasOwn(props, key)) {
+          return props[key]
+        }
+        let getter = publicPropertyMap[key]
+        
+        if (getter) {
+          return getter(target)
+        }
+      },
+      set(target, key, value) {
+        const { state, props } = target
+        if (state && hasOwn(state, key)) {
+          state[key] = value
+          return true
+        } else if (props && hasOwn(props, key)) {
+          // 用户操作的属性是代理对象，此处屏蔽了
+          // 但是用户任然可以通过instance.props 拿到真实的props
+          console.warn(`attempting to mutatte prop ${key as string}`)
+          return false
+        }
+        return true
+      }
+    })
+
+    const componentUpdate = () => {
+      if (instance.isMounted) {
+        const subTree = render.call(instance.proxy)
         patch(null, subTree, container, anchor)
         instance.subTree = subTree
         instance.isMounted = true
       } else {
-        const subTree = render.call(state)
+        const subTree = render.call(instance.proxy)
         patch(instance.subTree, subTree, container, anchor)
         instance.subTree = subTree
       }
     }
-    const effect = new ReactiveEffect(componentUpdate, () => queueJob(instance.update))
+    const effect = new ReactiveEffect(componentUpdate, () =>
+      queueJob(instance.update)
+    )
     let update = (instance.update = effect.run.bind(effect))
     update()
   }

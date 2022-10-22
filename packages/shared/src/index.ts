@@ -15,6 +15,10 @@ export const isArray = Array.isArray
 
 export const assign = Object.assign
 
+export const hasOwnProperty = Object.prototype.hasOwnProperty
+
+export const hasOwn = (value, key) => hasOwnProperty.call(value, key)
+
 // vue3 提供的形状标识
 export const enum ShapeFlags {
   ELEMENT = 1,
