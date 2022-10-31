@@ -4,6 +4,7 @@ import { queueJob } from './scheduler'
 import { getSequence } from './sequence'
 import { createVnode, isSameVnode, Text, Fragment } from './vnode'
 import { createComponentInstance, setupComponent } from './component'
+import { updateProps } from './componentProps'
 
 export function createRenderer(renderOptions) {
   let {
@@ -253,7 +254,7 @@ export function createRenderer(renderOptions) {
 
   const mountComponent = (vnode, container, anchor = null) => {
     // 1. 创建一个组件实例
-    let instance = createComponentInstance(vnode)
+    let instance = vnode.component = createComponentInstance(vnode)
     // 2. 给实例赋值
     setupComponent(instance)
     // 3. 创建一个effrct
@@ -261,7 +262,11 @@ export function createRenderer(renderOptions) {
   }
 
   const updateComponent = (n1, n2) => {
-    debugger
+    const instance = (n2.component = n1.component) // 对于元素 复用的是节点，而组件则复用实例
+    const { props: prevProps } = n1
+    const { props: nextProps } = n2
+
+    updateProps(instance, prevProps, nextProps)
   }
 
   const processComponent = (n1, n2, container, anchor) => {

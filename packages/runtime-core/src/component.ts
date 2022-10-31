@@ -64,4 +64,5 @@ export function setupComponent(instance) {
     }
     instance.data = reactive(data.call(instance.proxy))
   }
+  instance.components = instance
 }
