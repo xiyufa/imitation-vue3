@@ -260,11 +260,15 @@ export function createRenderer(renderOptions) {
     setupComponentEffect(instance, container, anchor)
   }
 
+  const updateComponent = (n1, n2) => {
+    debugger
+  }
+
   const processComponent = (n1, n2, container, anchor) => {
     if (n1 === null) {
       mountComponent(n2, container, anchor)
     } else {
-      // 组件更新 props
+      updateComponent(n1, n2)
     }
   }
 

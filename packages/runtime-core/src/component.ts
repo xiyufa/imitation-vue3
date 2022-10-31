@@ -1,3 +1,4 @@
+import { reactive } from '@vue/reactivity';
 import { hasOwn, isFunction } from '@vue/shared'
 import { initProps } from './componentProps'
 
@@ -61,6 +62,6 @@ export function setupComponent(instance) {
     if (!isFunction(data)) {
       return console.warn('data option must be a function')
     }
-    instance.data = data
+    instance.data = reactive(data.call(instance.proxy))
   }
 }

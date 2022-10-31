@@ -14,7 +14,7 @@ export function queueJob(job) {
       let copy = queue.slice(0)
       queue.length = 0
       for (let i = 0; i < copy.length; i++) {
-        let job = queue[i]
+        let job = copy[i]
         job()
       }
       copy.length = 0
