@@ -4,7 +4,7 @@ import { queueJob } from './scheduler'
 import { getSequence } from './sequence'
 import { createVnode, isSameVnode, Text, Fragment } from './vnode'
 import { createComponentInstance, setupComponent } from './component'
-import { updateProps } from './componentProps'
+import { hasPropsChange, updateProps } from './componentProps'
 
 export function createRenderer(renderOptions) {
   let {
@@ -231,6 +231,12 @@ export function createRenderer(renderOptions) {
     }
   }
 
+  const updateComponentPreRender = (instance, next) => {
+    instance.next = null
+    instance.vnode = next
+    updateProps(instance.props, next.props)
+  }
+
   const setupComponentEffect = (instance, container, anchor) => {
     const { render } = instance
     const componentUpdate = () => {
@@ -240,6 +246,12 @@ export function createRenderer(renderOptions) {
         instance.subTree = subTree
         instance.isMounted = true
       } else {
+        // 组件内部更新
+        let { next } = instance
+        if (next) {
+          // 组件更新前，先更新props
+          updateComponentPreRender(instance, next)
+        }
         const subTree = render.call(instance.proxy)
         patch(instance.subTree, subTree, container, anchor)
         instance.subTree = subTree
@@ -254,19 +266,29 @@ export function createRenderer(renderOptions) {
 
   const mountComponent = (vnode, container, anchor = null) => {
     // 1. 创建一个组件实例
-    let instance = vnode.component = createComponentInstance(vnode)
+    let instance = (vnode.component = createComponentInstance(vnode))
     // 2. 给实例赋值
     setupComponent(instance)
     // 3. 创建一个effrct
     setupComponentEffect(instance, container, anchor)
   }
 
+  const showUpdateComponent = (n1, n2) => {
+    const { props: prevProps, children: prevChildren } = n1
+    const { props: nextProps, children: nextChildren } = n2
+    if (prevProps === nextProps) return false
+    if (prevChildren || nextChildren) return true
+    return hasPropsChange(prevProps, nextProps)
+  }
+
   const updateComponent = (n1, n2) => {
     const instance = (n2.component = n1.component) // 对于元素 复用的是节点，而组件则复用实例
-    const { props: prevProps } = n1
-    const { props: nextProps } = n2
-
-    updateProps(instance, prevProps, nextProps)
+    if (showUpdateComponent(n1, n2)) {
+      // 将新的虚拟节点挂载到实例的next
+      instance.next = n2
+      // 统一调用实例上的更新方法
+      instance.updated()
+    }
   }
 
   const processComponent = (n1, n2, container, anchor) => {
