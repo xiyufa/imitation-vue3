@@ -4,6 +4,7 @@ import { nodeOps } from './nodeOps'
 import { patchProp } from './pathProp'
 
 export * from '@vue/runtime-core'
+export * from '@vue/reactivity'
 
 // domApi 属性Api
 const renderOptions = assign(nodeOps, { patchProp })

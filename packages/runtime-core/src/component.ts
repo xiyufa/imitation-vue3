@@ -1,5 +1,5 @@
-import { reactive } from '@vue/reactivity';
-import { hasOwn, isFunction } from '@vue/shared'
+import { proxyRefs, reactive } from '@vue/reactivity'
+import { hasOwn, isFunction, isObject } from '@vue/shared'
 import { initProps } from './componentProps'
 
 export function createComponentInstance(vnode) {
@@ -13,7 +13,8 @@ export function createComponentInstance(vnode) {
     props: {},
     attrs: {},
     proxy: null,
-    render: null
+    render: null,
+    setupState: {}
   }
 
   return instance
@@ -25,9 +26,11 @@ const publicPropertyMap = {
 
 const publicInstanceProxy = {
   get(target, key) {
-    const { data, props } = target
+    const { data, props, setupState } = target
     if (data && hasOwn(data, key)) {
       return data[key]
+    } else if (setupState && hasOwn(setupState, key)) {
+      return setupState[key]
     } else if (props && hasOwn(props, key)) {
       return props[key]
     }
@@ -38,9 +41,12 @@ const publicInstanceProxy = {
     }
   },
   set(target, key, value) {
-    const { data, props } = target
+    const { data, props, setupState } = target
     if (data && hasOwn(data, key)) {
       data[key] = value
+      return true
+    } else if (setupState && hasOwn(setupState, key)) {
+      setupState[key] = value
       return true
     } else if (props && hasOwn(props, key)) {
       // 用户操作的属性是代理对象，此处屏蔽了
@@ -54,15 +60,26 @@ const publicInstanceProxy = {
 
 export function setupComponent(instance) {
   let { props, type } = instance.vnode
-  let { data, render } = type
+  let { data, render, setup } = type
   initProps(instance, props)
   instance.proxy = new Proxy(instance, publicInstanceProxy)
-  instance.render = render
   if (data) {
     if (!isFunction(data)) {
       return console.warn('data option must be a function')
     }
     instance.data = reactive(data.call(instance.proxy))
   }
-  instance.components = instance
+  if (setup) {
+    const setuoContext = {}
+    const setupResult = setup(instance.props, setuoContext)
+
+    if (isFunction(setupResult)) {
+      instance.render = setupResult
+    } else if (isObject(setupResult)) {
+      instance.setupState = proxyRefs(setupResult)
+    }
+  }
+  if (!instance.render) {
+    instance.render = render
+  }
 }
