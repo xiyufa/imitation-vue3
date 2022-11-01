@@ -287,7 +287,7 @@ export function createRenderer(renderOptions) {
       // 将新的虚拟节点挂载到实例的next
       instance.next = n2
       // 统一调用实例上的更新方法
-      instance.updated()
+      instance.update()
     }
   }
 
