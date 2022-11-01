@@ -300,7 +300,8 @@ export function createRenderer(renderOptions) {
   }
 
   const patch = (n1, n2, container, anchor = null) => {
-    if (n1 === n2) return
+    // bugfix: n1为null n2可能是undefined
+    if (n1 == n2) return
     if (n1 && !isSameVnode(n1, n2)) {
       unmount(n1)
       n1 = null
