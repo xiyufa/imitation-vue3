@@ -1,5 +1,5 @@
 import { proxyRefs, reactive } from '@vue/reactivity'
-import { hasOwn, isFunction, isObject } from '@vue/shared'
+import { hasOwn, isFunction, isObject, ShapeFlags } from '@vue/shared'
 import { initProps } from './componentProps'
 
 export function createComponentInstance(vnode) {
@@ -14,14 +14,16 @@ export function createComponentInstance(vnode) {
     attrs: {},
     proxy: null,
     render: null,
-    setupState: {}
+    setupState: {},
+    slots: {}
   }
 
   return instance
 }
 
 const publicPropertyMap = {
-  $attrs: i => i.attrs
+  $attrs: i => i.attrs,
+  $slots: i => i.slots
 }
 
 const publicInstanceProxy = {
@@ -58,10 +60,17 @@ const publicInstanceProxy = {
   }
 }
 
+function initSlots(instance, children) {
+  if (instance.vnode.shapeFlag & ShapeFlags.SLOTS_CHILDREN) {
+    instance.slots = children
+  }
+}
+
 export function setupComponent(instance) {
-  let { props, type } = instance.vnode
+  let { props, type, children } = instance.vnode
   let { data, render, setup } = type
   initProps(instance, props)
+  initSlots(instance, children)
   instance.proxy = new Proxy(instance, publicInstanceProxy)
   if (data) {
     if (!isFunction(data)) {
