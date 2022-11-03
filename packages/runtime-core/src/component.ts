@@ -84,7 +84,9 @@ export function setupComponent(instance) {
         const eventName = `on${event[0].toUpperCase()}${event.slice(1)}`
         const handle = instance.vnode.props[eventName]
         handle && handle(...arg)
-      }
+      },
+      attrs: instance.attrs,
+      slots: instance.slots
     }
     const setupResult = setup(instance.props, setupContext)
 
