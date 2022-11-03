@@ -70,8 +70,14 @@ export function setupComponent(instance) {
     instance.data = reactive(data.call(instance.proxy))
   }
   if (setup) {
-    const setuoContext = {}
-    const setupResult = setup(instance.props, setuoContext)
+    const setupContext = {
+      emit: (event, ...arg) => {
+        const eventName = `on${event[0].toUpperCase()}${event.slice(1)}`
+        const handle = instance.vnode.props[eventName]
+        handle && handle(...arg)
+      }
+    }
+    const setupResult = setup(instance.props, setupContext)
 
     if (isFunction(setupResult)) {
       instance.render = setupResult
