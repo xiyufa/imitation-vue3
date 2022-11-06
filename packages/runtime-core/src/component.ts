@@ -1,6 +1,9 @@
 import { proxyRefs, reactive } from '@vue/reactivity'
 import { hasOwn, isFunction, isObject, ShapeFlags } from '@vue/shared'
 import { initProps } from './componentProps'
+export let currentInstance = null
+export const setCurrentInstance = instance => (currentInstance = instance)
+export const getCurrentInstance = () => currentInstance
 
 export function createComponentInstance(vnode) {
   const instance = {
@@ -88,7 +91,9 @@ export function setupComponent(instance) {
       attrs: instance.attrs,
       slots: instance.slots
     }
+    setCurrentInstance(instance)
     const setupResult = setup(instance.props, setupContext)
+    setCurrentInstance(null)
 
     if (isFunction(setupResult)) {
       instance.render = setupResult

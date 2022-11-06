@@ -1,7 +1,7 @@
 export const isObject = value => {
   return typeof value === 'object' && value !== null
 }
-export const inNumber = value => {
+export const isNumber = value => {
   return typeof value === 'number'
 }
 export const isFunction = value => {
@@ -14,6 +14,12 @@ export const isString = value => {
 export const isArray = Array.isArray
 
 export const assign = Object.assign
+
+export const invokeArrayFns = fns => {
+  for (let i = 0; i < fns.length; i++) {
+    fns[i]()
+  }
+}
 
 export const hasOwnProperty = Object.prototype.hasOwnProperty
 
