@@ -14,7 +14,7 @@ export function isSameVnode(n1, n2) {
 }
 
 // 虚拟节点： 组件，元素，文本
-export function createVnode(type, props, children = null) {
+export function createVnode(type, props, children = null, pacthFlag = 0) {
   let shapeFlag = isString(type)
     ? ShapeFlags.ELEMENT
     : isObject(type)
@@ -28,13 +28,14 @@ export function createVnode(type, props, children = null) {
     children,
     key: props?.['key'],
     shapeFlag,
-    _v_isVnode: true
+    _v_isVnode: true,
+    pacthFlag
   }
   if (children) {
     let type = 0
     if (isArray(children)) {
       type = ShapeFlags.ARRAY_CHILDREN
-    } else if(isObject(children)) {
+    } else if (isObject(children)) {
       // 插槽
       type = ShapeFlags.SLOTS_CHILDREN
     } else if (isString(children)) {
@@ -42,6 +43,39 @@ export function createVnode(type, props, children = null) {
       type = ShapeFlags.TEXT_CHILDREBN
     }
     vnode.shapeFlag |= type
+
+    if (currentBlock && vnode.pacthFlag > 0) {
+      currentBlock.push(vnode)
+    }
   }
   return vnode
+}
+
+export { createVnode as _createElementVNode }
+
+let currentBlock = null
+
+export function opendBlock() {
+  currentBlock = []
+}
+
+export function createElementBlock(type, props, children, pacthFlag) {
+  setupBlock(createVnode(type, props, children, pacthFlag))
+}
+
+export function setupBlock(vnode) {
+  vnode.dynamicChildren = currentBlock
+  currentBlock = null
+
+  return vnode
+}
+
+export function toDisplayString(val) {
+  return isString(val)
+    ? val
+    : val == null
+    ? ''
+    : isObject(val)
+    ? JSON.stringify(val)
+    : String(val)
 }

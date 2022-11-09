@@ -1,5 +1,11 @@
 import { ReactiveEffect } from '@vue/reactivity'
-import { invokeArrayFns, isNumber, isString, ShapeFlags } from '@vue/shared'
+import {
+  invokeArrayFns,
+  isNumber,
+  isString,
+  PatchFlags,
+  ShapeFlags
+} from '@vue/shared'
 import { queueJob } from './scheduler'
 import { getSequence } from './sequence'
 import { createVnode, isSameVnode, Text, Fragment } from './vnode'
@@ -203,6 +209,12 @@ export function createRenderer(renderOptions) {
     }
   }
 
+  const patchBlockChildren = (n1, n2) => {
+    for (let i = 0; i < n2.dynamicChildren.length; i++) {
+      patchElement(n1.dynamicChildren[i], n2.dynamicChildren[i])
+    }
+  }
+
   // 复用节点  再比较属性，再比较子节点
   const patchElement = (n1, n2) => {
     let el = (n2.el = n1.el)
@@ -211,8 +223,21 @@ export function createRenderer(renderOptions) {
 
     // 比较属性
     patchProps(oldProps, newProps, el)
+    let { patchFlag } = n2
+    if (patchFlag & PatchFlags.CLASS) {
+      if (oldProps.class !== newProps.class) {
+        hostPatchProp(el, 'class', null, newProps.class)
+      }
+      // style, 事件...
+    }
+
     // 比较子节点
-    patchChildren(n1, n2, el)
+    if (n2.dynamicChildren) {
+      // 靶向更新
+      patchBlockChildren(n1, n2)
+    } else {
+      patchChildren(n1, n2, el)
+    }
   }
 
   const processElement = (n1, n2, container, anchor) => {
