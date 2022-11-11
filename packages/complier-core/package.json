@@ -1,0 +1,14 @@
+{
+  "name": "@vue/complier-core",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "buildOption": {
+    "name": "VueComplierCore",
+    "formats": [
+      "global",
+      "cjs",
+      "esm-bundler"
+    ]
+  }
+}
