@@ -12,6 +12,9 @@ function createParserContext(template) {
 
 function isEnd(context) {
   const source = context.source
+  if (source.startsWith('</')) {
+    return true
+  }
   // 解析完为空字符串表示解析完毕
   return !source
 }
@@ -113,7 +116,7 @@ function parseInterpolation(context) {
   let endOffset = startOffset + content.length
   advancePositionWithMutation(insetEnd, preContent, endOffset)
 
-  advanceBy(context,2)
+  advanceBy(context, 2)
 
   return {
     type: NodeTypes.INTERPOLATION,
@@ -126,10 +129,47 @@ function parseInterpolation(context) {
   }
 }
 
-function parse(template) {
-  // 创建一个解析上下文
-  const context = createParserContext(template)
+function advanceBySpaces(context) {
+  let match = /^[\t\r\n]+/.exec(context.source)
+  if (match) {
+    advanceBy(context, match[0].length)
+  }
+}
 
+function parseTag(context) {
+  const start = getCursor(context)
+  let match = /^<\/?([a-z][^ \t\r\n/>]*)/.exec(context.source)
+  const tag = match[1]
+  advanceBy(context, match[0].length)
+  advanceBySpaces(context)
+  let isSelfClosing = context.source.startsWith('</')
+  advanceBy(context, isSelfClosing ? 2 : 1)
+
+  return {
+    tag,
+    isSelfClosing,
+    type: NodeTypes.ELEMENT,
+    loc: getSelection(context, start),
+    children: []
+  }
+}
+
+function parseElement(context) {
+  // 解析标签
+  let ele = parseTag(context)
+  // 子节点
+  let children = patchChildren(context)
+
+  if (context.source.startsWith('</')) {
+    parseTag(context)
+  }
+  ele.loc = getSelection(context, ele.loc.start)
+  ele.children = children
+
+  return ele
+}
+
+function patchChildren(context) {
   const nodes = []
   while (!isEnd(context)) {
     const source = context.source
@@ -137,7 +177,7 @@ function parse(template) {
     if (source.startsWith('{{')) {
       node = parseInterpolation(context)
     } else if (source.startsWith('<')) {
-      node = 'qqq'
+      node = parseElement(context)
     }
     // 文本
     if (!node) {
@@ -147,6 +187,12 @@ function parse(template) {
   }
 
   return nodes
+}
+
+function parse(template) {
+  // 创建一个解析上下文
+  const context = createParserContext(template)
+  return patchChildren(context)
 }
 
 export function compile(template) {
