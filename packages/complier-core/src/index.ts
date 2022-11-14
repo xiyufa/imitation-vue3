@@ -130,10 +130,64 @@ function parseInterpolation(context) {
 }
 
 function advanceBySpaces(context) {
-  let match = /^[\t\r\n]+/.exec(context.source)
+  let match = /^[\t\r\n ]+/.exec(context.source)
+  
   if (match) {
     advanceBy(context, match[0].length)
   }
+}
+
+function parseAttributeValue(context) {
+  const start = getCursor(context)
+  let content
+
+  let quote = context.source[0]
+
+  if (quote === '"' || quote == "'") {
+    advanceBy(context, 1)
+    const endIndex = context.source.indexOf(quote)
+    content = parseTextData(context, endIndex)
+    advanceBy(context, 1)
+  }
+  return {
+    content,
+    loc: getSelection(context, start)
+  }
+}
+
+function parseAttribute(context) {
+  const start = getCursor(context)
+
+  const match = /^[^\t\r\n\f][^\t\r\n\f />=]*/.exec(context.source)
+
+  let name = match[0]
+  advanceBy(context, name.length)
+  advanceBySpaces(context)
+  advanceBy(context, 1)
+
+  let value = parseAttributeValue(context)
+
+  return {
+    type: NodeTypes.ATTRIBUTE,
+    name,
+    value: {
+      type: NodeTypes.TEXT,
+      ...value
+    },
+    loc: getSelection(context, start)
+  }
+}
+
+function parseAttributes(context) {
+  const props = []
+
+  while (context.source.length > 0 && !context.source.startsWith('>')) {
+    const prop = parseAttribute(context)
+    props.push(prop)
+    advanceBySpaces(context)
+  }
+
+  return props
 }
 
 function parseTag(context) {
@@ -142,15 +196,19 @@ function parseTag(context) {
   const tag = match[1]
   advanceBy(context, match[0].length)
   advanceBySpaces(context)
+  
+  // 属性
+  let props = parseAttributes(context)
   let isSelfClosing = context.source.startsWith('</')
   advanceBy(context, isSelfClosing ? 2 : 1)
 
   return {
     tag,
     isSelfClosing,
+    props,
+    children: [],
     type: NodeTypes.ELEMENT,
-    loc: getSelection(context, start),
-    children: []
+    loc: getSelection(context, start)
   }
 }
 
