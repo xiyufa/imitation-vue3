@@ -131,7 +131,7 @@ function parseInterpolation(context) {
 
 function advanceBySpaces(context) {
   let match = /^[\t\r\n ]+/.exec(context.source)
-  
+
   if (match) {
     advanceBy(context, match[0].length)
   }
@@ -196,7 +196,7 @@ function parseTag(context) {
   const tag = match[1]
   advanceBy(context, match[0].length)
   advanceBySpaces(context)
-  
+
   // 属性
   let props = parseAttributes(context)
   let isSelfClosing = context.source.startsWith('</')
@@ -244,13 +244,28 @@ function patchChildren(context) {
     nodes.push(node)
   }
 
-  return nodes
+  nodes.forEach((node, idx) => {
+    if (node.type === NodeTypes.TEXT && !/[^\r\n\t\f ]/.test(node.content)) {
+      nodes[idx] = null
+    }
+  })
+
+  return nodes.filter(Boolean)
+}
+
+function createRoot(children, loc) {
+  return {
+    type: NodeTypes.Root,
+    children,
+    loc
+  }
 }
 
 function parse(template) {
   // 创建一个解析上下文
   const context = createParserContext(template)
-  return patchChildren(context)
+  const start = getCursor(context)
+  return createRoot(patchChildren(context), getSelection(context, start))
 }
 
 export function compile(template) {
