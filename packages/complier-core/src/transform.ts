@@ -1,9 +1,8 @@
+import { TO_DISPLAY_STRING } from './runtimeHelpers'
 import { NodeTypes } from './ast'
 import { transformExpression } from './transformExpression'
-
-function transformElement() {}
-
-function transformText() {}
+import { transformText } from './transformText'
+import { transformElement } from './transformElement'
 
 function createTransformContext(root) {
   const context = {
@@ -25,18 +24,30 @@ function traverse(node, context) {
   context.currentNode = node
   const transfroms = context.nodeTransFroms
 
+  let exitFns = []
   for (let i = 0; i < transfroms.length; i++) {
-    transfroms[i](node, context) // 在执行时，node可能被删除
+    let onExit = transfroms[i](node, context) // 在执行时，node可能被删除
+    if (onExit) {
+      exitFns.push(onExit)
+    }
 
     if (!context.currentNode) return
   }
   switch (node.type) {
+    case NodeTypes.INTERPOLATION:
+      context.helper(TO_DISPLAY_STRING)
     case NodeTypes.ELEMENT:
     case NodeTypes.Root:
       for (let i = 0; i < node.children.length; i++) {
         context.parent = node
         traverse(node.children[i], context)
       }
+  }
+
+  let i = exitFns.length
+  context.currentNode = node
+  while (i--) {
+    exitFns[i]()
   }
 }
 
