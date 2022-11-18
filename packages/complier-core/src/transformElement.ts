@@ -3,7 +3,7 @@ import { createObjectExpression, createVnodeCall, NodeTypes } from './ast'
 export function transformElement(node, context) {
   if (node.type === NodeTypes.ELEMENT) {
     return () => {
-      let vnodeTag = `"${node.tag}"`
+      let vnodeTag = `${node.tag}`
 
       let properties = []
       let props = node.props
