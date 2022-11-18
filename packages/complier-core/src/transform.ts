@@ -36,12 +36,14 @@ function traverse(node, context) {
   switch (node.type) {
     case NodeTypes.INTERPOLATION:
       context.helper(TO_DISPLAY_STRING)
+      break
     case NodeTypes.ELEMENT:
     case NodeTypes.Root:
       for (let i = 0; i < node.children.length; i++) {
         context.parent = node
         traverse(node.children[i], context)
       }
+      break
   }
 
   let i = exitFns.length
