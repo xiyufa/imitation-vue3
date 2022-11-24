@@ -73,6 +73,7 @@ function traverse(node, context) {
 function createRootCodegen(ast, context) {
   let { children } = ast
 
+  if (children.length === 0) return
   if (children.length === 1) {
     const child = children[0]
     if (child.type === NodeTypes.ELEMENT && child.codegenNode) {
@@ -84,7 +85,7 @@ function createRootCodegen(ast, context) {
 
       ast.codegenNode.isBlock = true // 只有一个元素，纳闷当前元素是一个block节点
     } else {
-      ast.codegenNode = child.codegenNode
+      ast.codegenNode = child
     }
   } else {
     ast.codegenNode = createVnodeCall(
@@ -108,7 +109,4 @@ export function transform(ast) {
   createRootCodegen(ast, context)
 
   ast.helpers = [...context.helpers.keys()]
-
-  console.log(ast.helpers);
-  
 }
