@@ -1,11 +1,15 @@
 export let activeEffectScope = undefined
-
 class EffectScope {
   active = true
   parent = undefined
   effects = []
+  scope = []
 
-  constructor() {}
+  constructor(detached) {
+    if (!detached && activeEffectScope) {
+      activeEffectScope.scope.push(this)
+    }
+  }
 
   run(fn) {
     if (this.active) {
@@ -25,6 +29,9 @@ class EffectScope {
         this.effects[i].stop()
         this.active = false
       }
+      for (let i = 0; i < this.scope.length; i++) {
+        this.scope[i].stop()
+      }
     }
   }
 }
@@ -35,6 +42,6 @@ export function recordEffectScope(effect) {
   }
 }
 
-export function effectScope() {
-  return new EffectScope()
+export function effectScope(detached = false) {
+  return new EffectScope(detached)
 }
