@@ -1,0 +1,28 @@
+root = true                         # 根目录的配置文件，编辑器会由当前目录向上查找，如果找到 `roor = true` 的文件，则不再查找
+
+[*]                                 # 匹配所有的文件
+charset = utf-8                     # 文件编码是 utf-8
+insert_final_newline = true         # 文件末尾添加一个空行
+trim_trailing_whitespace = true     # 不保留行末的空格
+
+[*.{js,jsx,ts,tsx,vue}]
+indent_size = 2                     # 缩进空格为2个
+indent_style = space                # 空格缩进
+curly_bracket_next_line = false     # 大括号不另起一行
+spaces_around_operators = true      # 运算符两遍都有空格
+indent_brace_style = 1tbs           # 条件语句格式是 1tbs
+
+[*.{css,styl,scss,less,sass}]
+indent_size = 2
+indent_style = space
+
+[*.html]
+indent_size = 2
+indent_style = space
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{json,yml}]
+indent_size = 2
+indent_style = space
