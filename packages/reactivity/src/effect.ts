@@ -1,3 +1,5 @@
+import { recordEffectScope } from './effectScope'
+
 export let activeEffect = undefined
 
 function clearupEffect(effect) {
@@ -14,7 +16,9 @@ export class ReactiveEffect {
   private parent = null
   private active = true // effect 默认激活
   private deps = []
-  constructor(private fn, private scheduler?) {}
+  constructor(private fn, private scheduler?) {
+    recordEffectScope(this)
+  }
 
   run() {
     if (!this.active) {
