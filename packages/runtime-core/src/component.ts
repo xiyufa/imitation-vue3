@@ -5,8 +5,10 @@ export let currentInstance = null
 export const setCurrentInstance = instance => (currentInstance = instance)
 export const getCurrentInstance = () => currentInstance
 
-export function createComponentInstance(vnode) {
+export function createComponentInstance(vnode, parent) {
   const instance = {
+    provides: parent ? parent.provides : Object.create(null),
+    parent,
     data: null,
     vnode,
     subTree: null,
