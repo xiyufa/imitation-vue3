@@ -211,7 +211,11 @@ export function createRenderer(renderOptions) {
 
   const patchBlockChildren = (n1, n2, parentComponent) => {
     for (let i = 0; i < n2.dynamicChildren.length; i++) {
-      patchElement(n1.dynamicChildren[i], n2.dynamicChildren[i], parentComponent)
+      patchElement(
+        n1.dynamicChildren[i],
+        n2.dynamicChildren[i],
+        parentComponent
+      )
     }
   }
 
@@ -363,6 +367,17 @@ export function createRenderer(renderOptions) {
           processElement(n1, n2, container, anchor, parentComponent)
         } else if (shapeFlag & ShapeFlags.COMPONENT) {
           processComponent(n1, n2, container, anchor, parentComponent)
+        } else if (shapeFlag & ShapeFlags.TELEPORT) {
+          type.process(n1, n2, container, anchor, {
+            mounthChildren,
+            patchChildren,
+            move(vnode, container) {
+              hostInset(
+                vnode.component ? vnode.component.subtree.el : vnode.el,
+                container
+              )
+            }
+          })
         }
     }
   }

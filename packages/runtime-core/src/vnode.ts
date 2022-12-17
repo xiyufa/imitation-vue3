@@ -1,3 +1,4 @@
+import { isTeleport } from './components/teleport'
 import { isArray } from './../../shared/src/index'
 import { isString, ShapeFlags, isObject } from '@vue/shared'
 
@@ -17,6 +18,8 @@ export function isSameVnode(n1, n2) {
 export function createVnode(type, props, children = null, pacthFlag = 0) {
   let shapeFlag = isString(type)
     ? ShapeFlags.ELEMENT
+    : isTeleport(type)
+    ? ShapeFlags.TELEPORT
     : isObject(type)
     ? ShapeFlags.STATRFUL_COMPONENT
     : 0
