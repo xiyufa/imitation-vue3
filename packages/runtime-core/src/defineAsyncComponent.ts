@@ -10,12 +10,45 @@ export function defineAsyncComponent(options) {
     setup() {
       const loaded = ref(false)
       const error = ref(false)
-      const { loader, timeout, errorComponent } = options
+      const loading = ref(false)
+      const {
+        loader,
+        timeout,
+        errorComponent,
+        delay,
+        loadingComponent,
+        onError
+      } = options
+
+      if (delay) {
+        setTimeout(() => {
+          loaded.value = true
+        }, delay)
+      }
+
       let Comp = null
-      loader().then(c => {
-        Comp = c
-        loaded.value = true
-      })
+      function load() {
+        return loader().catch(err => {
+          if (onError) {
+            // promise链的递归
+            return new Promise((resolve, reject) => {
+              const retry = resolve(load())
+              const fail = reject(err)
+              onError(err, retry, fail)
+            })
+          }
+        })
+      }
+
+      load()
+        .then(c => {
+          Comp = c
+          loaded.value = true
+        })
+        .catch(err => (error.value = err))
+        .finally(() => {
+          loaded.value = false
+        })
 
       setTimeout(() => {
         error.value = true
@@ -26,9 +59,10 @@ export function defineAsyncComponent(options) {
           return h(Comp)
         } else if (error.value && errorComponent) {
           return h(errorComponent)
-        } else {
-          return h(Fragment, [])
+        } else if (loading.value) {
+          return h(loadingComponent)
         }
+        return h(Fragment, [])
       }
     }
   }
