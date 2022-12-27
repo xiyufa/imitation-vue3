@@ -1,5 +1,5 @@
 import { reactive } from '@vue/reactivity'
-import { hasOwn } from '@vue/shared'
+import { hasOwn, ShapeFlags } from '@vue/shared'
 
 export function initProps(instance, rowProps) {
   const props = {}
@@ -22,6 +22,11 @@ export function initProps(instance, rowProps) {
   // 因为后续属性变化，组件得重新渲染，所有这里应该使用 shallowReactive
   instance.props = reactive(props)
   instance.attrs = attrs
+
+  // props是组件中的，如果是函数式组件，应该用attrs作为props
+  if (instance.vnode.shapeFlag & ShapeFlags.FUNCTIONAL_COMPONENT) {
+    instance.props = instance.attrs
+  }
 }
 
 export function hasPropsChange(prevProps = {}, nextProps = {}) {

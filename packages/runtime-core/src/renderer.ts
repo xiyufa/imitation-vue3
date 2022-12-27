@@ -9,7 +9,7 @@ import {
 import { queueJob } from './scheduler'
 import { getSequence } from './sequence'
 import { createVnode, isSameVnode, Text, Fragment } from './vnode'
-import { createComponentInstance, setupComponent } from './component'
+import { createComponentInstance, renderComponent, setupComponent } from './component'
 import { hasPropsChange, updateProps } from './componentProps'
 
 export function createRenderer(renderOptions) {
@@ -267,7 +267,7 @@ export function createRenderer(renderOptions) {
   }
 
   const setupComponentEffect = (instance, container, anchor) => {
-    const { render } = instance
+    const { render, vnode } = instance
     const componentUpdate = () => {
       // 初始化
       if (!instance.isMounted) {
@@ -275,7 +275,7 @@ export function createRenderer(renderOptions) {
         if (bm) {
           invokeArrayFns(bm)
         }
-        const subTree = render.call(instance.proxy)
+        const subTree = renderComponent(instance)
         patch(null, subTree, container, anchor, instance)
         if (m) {
           invokeArrayFns(m)

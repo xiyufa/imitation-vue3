@@ -107,3 +107,12 @@ export function setupComponent(instance) {
     instance.render = render
   }
 }
+
+export function renderComponent(instance) {
+  let { vnode, render, props } = instance
+  if (vnode.shapeFlag & ShapeFlags.STATRFUL_COMPONENT) {
+    return render.call(instance.proxy, instance.proxy)
+  } else {
+    return vnode.type(props)
+  }
+}
