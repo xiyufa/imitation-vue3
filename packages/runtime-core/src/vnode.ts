@@ -1,4 +1,4 @@
-import { isTeleport } from './components/teleport'
+import { isTeleport } from './components/Teleport'
 import {
   isString,
   ShapeFlags,
